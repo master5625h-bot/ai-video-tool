@@ -25,7 +25,7 @@ demo = gr.Interface(
             gr.Slider(256, 1280, value=512, label="Height"), gr.Slider(256, 1280, value=704, label="Width"),
             gr.Slider(0.3, 8.5, value=4.0, label="Video Duration (seconds)"), gr.Number(value=42, label="Seed")],
     outputs=gr.Video(label="Video"),
-    title="AI Video Maker Engine",
+    title="Editor Engine",
     api_name="text_to_video",
 )
 demo.queue().launch()
