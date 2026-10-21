@@ -1,4 +1,4 @@
-/* AI Video Maker - frontend logic
+/* Editor Engine - frontend logic
    Backend = Hugging Face Space (Gradio API): Lightricks/ltx-video-distilled (free ZeroGPU).
    Engine swap = sirf CONFIG.space badlo. */
 const CONFIG = {
