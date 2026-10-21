@@ -4,7 +4,7 @@ Free public AI video generator: text prompt (Hindi/English) -> 3-5 sec AI video,
 
 - Frontend: static site, GitHub Pages (`master5625h-bot.github.io/bt-engine/`)
 - Backend: Hugging Face Space (Gradio API) - set in `app.js` CONFIG.space
-- Rate limit: 1 video per user per 10 min (client-side)
+- Rate limit: 1 video per user per 40 sec (client-side)
 - Rs 0 budget stack
 
 ## Rename
