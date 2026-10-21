@@ -4,7 +4,7 @@
 const CONFIG = {
   space: "Lightricks/ltx-video-distilled",
   apiName: "/text_to_video",
-  cooldownMin: 10,      // 1 video per 10 min per user
+  cooldownSec: 40,       // 1 video per 40 sec per user
   durationSec: 4        // 3-5 sec promise
 };
 
@@ -20,14 +20,16 @@ document.querySelectorAll(".chip").forEach(c => c.addEventListener("click", () =
 const KEY = "avm_last";
 function cooldownLeft() {
   const last = +localStorage.getItem(KEY) || 0;
-  return Math.max(0, CONFIG.cooldownMin * 60 * 1000 - (Date.now() - last));
+  return Math.max(0, CONFIG.cooldownSec * 1000 - (Date.now() - last));
 }
 function tickCooldown() {
   const left = cooldownLeft();
   if (left > 0) {
     go.disabled = true;
-    const m = Math.floor(left / 60000), s = Math.ceil((left % 60000) / 1000);
-    go.innerHTML = `⏳ Agla video <span class="timer">${m}:${String(s).padStart(2, "0")}</span> min me`;
+    const totalSec = Math.ceil(left / 1000);
+    const m = Math.floor(totalSec / 60), s = totalSec % 60;
+    const txt = m > 0 ? `${m}:${String(s).padStart(2, "0")} min` : `${s} sec`;
+    go.innerHTML = `⏳ Agla video <span class="timer">${txt}</span> me`;
     setTimeout(tickCooldown, 1000);
   } else {
     go.disabled = false;
