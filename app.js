@@ -1,4 +1,4 @@
-/* Editor Engine - frontend logic
+/* BT Engine - frontend logic
    Backend = Hugging Face Space (Gradio API): Lightricks/ltx-video-distilled (free ZeroGPU).
    Engine swap = sirf CONFIG.space badlo. */
 const CONFIG = {
