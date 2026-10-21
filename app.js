@@ -1,23 +1,22 @@
 /* AI Video Maker - frontend logic
-   Backend = Hugging Face Space (Gradio API). Space URL neeche CONFIG me.
+   Backend = Hugging Face Space (Gradio API): Lightricks/ltx-video-distilled (free ZeroGPU).
    Engine swap = sirf CONFIG.space badlo. */
 const CONFIG = {
-  space: "",            // e.g. "Lightricks/LTX-Video" - engine test ke baad set hoga
-  apiName: "/predict",  // Gradio endpoint name
-  cooldownMin: 10       // 1 video per 10 min per user
+  space: "Lightricks/ltx-video-distilled",
+  apiName: "/text_to_video",
+  cooldownMin: 10,      // 1 video per 10 min per user
+  durationSec: 4        // 3-5 sec promise
 };
 
 const $ = id => document.getElementById(id);
 const go = $("go"), statusEl = $("status"), bar = $("bar"), barfill = $("barfill");
 const vid = $("vid"), resultCard = $("resultCard"), actions = $("actions"), dl = $("dl"), share = $("share");
 
-// example chips
 document.querySelectorAll(".chip").forEach(c => c.addEventListener("click", () => {
   $("prompt").value = c.textContent.replace(/^[^\s]+\s/, "");
   $("prompt").focus();
 }));
 
-// cooldown (client-side, per browser)
 const KEY = "avm_last";
 function cooldownLeft() {
   const last = +localStorage.getItem(KEY) || 0;
@@ -40,13 +39,28 @@ tickCooldown();
 function say(msg) { statusEl.innerHTML = msg; }
 function progress(p) { bar.style.display = "block"; barfill.style.width = p + "%"; }
 
-// Gradio Space API: POST /call/<api> -> event_id, then SSE stream
+// Gradio Space API: POST /gradio_api/call/<api> -> event_id, then SSE stream
 async function generate(prompt) {
-  const base = "https://" + CONFIG.space.replace("/", "-") + ".hf.space/gradio_api";
+  const host = "https://" + CONFIG.space.replace("/", "-") + ".hf.space";
+  const base = host + "/gradio_api";
+  const payload = [
+    prompt,                                                            // prompt
+    "worst quality, inconsistent motion, blurry, jittery, distorted",  // negative prompt
+    "",                                                                // input image (none)
+    "",                                                                // input video (none)
+    512, 704,                                                          // height, width
+    "text-to-video",                                                   // mode
+    CONFIG.durationSec,                                                // duration sec
+    9,                                                                 // frames from input video (unused)
+    Math.floor(Math.random() * 1000000),                               // seed
+    true,                                                              // randomize seed
+    1,                                                                 // guidance scale
+    true                                                               // improve texture
+  ];
   const r = await fetch(base + "/call" + CONFIG.apiName, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ data: [prompt] })
+    body: JSON.stringify({ data: payload })
   });
   if (!r.ok) throw new Error("Engine busy hai, thodi der baad try karo");
   const { event_id } = await r.json();
@@ -60,16 +74,18 @@ async function generate(prompt) {
     buf += dec.decode(value, { stream: true });
     const lines = buf.split("\n"); buf = lines.pop();
     for (const line of lines) {
+      if (line.startsWith("event: error")) throw new Error("Engine me dikkat aayi, dobara try karo");
       if (line.startsWith("data:")) {
-        const payload = line.slice(5).trim();
-        if (payload && payload !== "null") {
-          const data = JSON.parse(payload);
+        const payloadTxt = line.slice(5).trim();
+        if (payloadTxt && payloadTxt !== "null") {
+          const data = JSON.parse(payloadTxt);
           const v = Array.isArray(data) ? data[0] : data;
-          if (v && (v.url || (v.video && v.video.url))) return v.url || v.video.url;
-          if (v && v.path) return base.split("/gradio_api")[0] + "/gradio_api/file=" + v.path;
+          if (v && v.video && v.video.url) return v.video.url;
+          if (v && v.url) return v.url;
+          if (v && v.path) return host + "/gradio_api/file=" + v.path;
+          if (v && v.video && v.video.path) return host + "/gradio_api/file=" + v.video.path;
         }
       }
-      if (line.startsWith("event: error")) throw new Error("Engine me dikkat aayi, dobara try karo");
     }
   }
   throw new Error("Video nahi ban paya, dobara try karo");
@@ -78,7 +94,6 @@ async function generate(prompt) {
 go.addEventListener("click", async () => {
   const prompt = $("prompt").value.trim();
   if (prompt.length < 5) { say("⚠️ Thoda detail me likho (kam se kam 5 letters)"); return; }
-  if (!CONFIG.space) { say("🚧 Engine abhi connect ho raha hai - thodi der me aana!"); return; }
   go.disabled = true;
   resultCard.style.display = "none";
   say("🔄 Engine ko bhej diya... queue me ho");
